@@ -171,17 +171,14 @@ if user_input:
     # **Jika ada file, gunakan retriever**
     if retriever:
         response_data = conversation.invoke({"question": user_input})
-        response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
+        response = getattr(response_data, "answer", "⚠️ Tidak ada jawaban yang tersedia.")
 
     # **Jika tidak ada file, gunakan LLM biasa**
     else:
         response_data = llm.invoke(user_input)
 
         # **✅ Ambil hanya bagian content tanpa metadata**
-        if isinstance(response_data, dict) and "content" in response_data:
-            response = response_data["content"]
-        else:
-            response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+        response = getattr(response_data, "content", "⚠️ Terjadi kesalahan dalam mendapatkan jawaban.")
 
     # **Tampilkan jawaban chatbot**
     with st.chat_message("assistant"):
