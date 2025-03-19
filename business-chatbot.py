@@ -19,13 +19,23 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔥 UI Styling - Bikin Mirip ChatGPT**
+# **🔥 UI Styling - Chat di Bawah Seperti ChatGPT**
 st.markdown("""
     <style>
+        .stChatContainer {
+            display: flex;
+            flex-direction: column-reverse;
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+        }
         .stChatInputContainer {
             display: flex;
             align-items: center;
             gap: 10px;
+            padding: 10px;
         }
         .stChatMessage {
             border-radius: 12px;
@@ -44,13 +54,6 @@ st.markdown("""
 # **💾 Simpan history chat di session**
 if "history" not in st.session_state:
     st.session_state.history = []
-
-# **🔹 Tampilkan Chat History**
-st.title("💬 Chatbot AI - Seperti ChatGPT")
-
-for role, text in st.session_state.history:
-    with st.chat_message(role):
-        st.write(text)
 
 # **📎 Upload File Sebagai Sumber Data**
 uploaded_file = st.file_uploader("", type=["pdf", "txt"], label_visibility="collapsed")
@@ -80,6 +83,16 @@ if uploaded_file:
 # **🔹 Chatbot dengan Memory & Knowledge dari File (Jika Ada)**
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
 
+# **📌 Chatbox Statis di Bawah**
+st.title("💬 Chatbot AI - Seperti ChatGPT")
+st.markdown('<div class="stChatContainer">', unsafe_allow_html=True)
+
+for role, text in reversed(st.session_state.history):
+    with st.chat_message(role):
+        st.write(text)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
 # **📩 Input Chat dengan Upload File di Samping**
 col1, col2 = st.columns([8, 2])
 with col1:
@@ -102,18 +115,17 @@ if user_input:
     # **Jika tidak ada file, gunakan LLM biasa**
     else:
         response_data = llm.invoke(user_input)
-        response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
 
-    # **✅ Formatting agar hanya menampilkan content tanpa metadata**
-    if isinstance(response, dict):
-        response = response.get("content", "⚠️ Terjadi kesalahan dalam mendapatkan jawaban.")
-    elif response is None or not response.strip():
-        response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+        # **✅ Ambil hanya bagian content tanpa metadata**
+        if isinstance(response_data, dict) and "content" in response_data:
+            response = response_data["content"]
+        else:
+            response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
     # **Tampilkan jawaban chatbot**
     with st.chat_message("assistant"):
         st.write(response)
 
     # **Simpan history chat**
-    st.session_state.history.append(("user", user_input))
-    st.session_state.history.append(("assistant", response))
+    st.session_state.history.insert(0, ("user", user_input))
+    st.session_state.history.insert(0, ("assistant", response))
