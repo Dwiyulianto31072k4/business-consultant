@@ -24,7 +24,7 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 def search_web(query, num_results=5):
     """Melakukan pencarian di Google menggunakan SerpAPI"""
     if "SERP_API_KEY" not in st.secrets:
-        return [{"title": "❌ API Key SerpAPI tidak ditemukan di Secrets!", "href": "#"}]
+        return ["❌ API Key SerpAPI tidak ditemukan di Secrets!"]
 
     api_key = st.secrets["SERP_API_KEY"]
     
@@ -40,9 +40,9 @@ def search_web(query, num_results=5):
     
     if response.status_code == 200:
         results = response.json().get("organic_results", [])
-        return [{"title": res["title"], "href": res["link"], "snippet": res.get("snippet", "")} for res in results]
+        return [f"🔍 [{res['title']}]({res['link']}) - {res.get('snippet', '')}" for res in results]
     else:
-        return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
+        return ["❌ Tidak ada hasil pencarian."]
 
 # **💾 Simpan history chat di session**
 if "history" not in st.session_state:
@@ -88,9 +88,6 @@ for role, text in st.session_state.history:
 # **🔹 Input Chat di Bawah**
 user_input = st.chat_input("Ketik pertanyaan Anda...")
 
-# **🔹 Pastikan jawaban selalu memiliki nilai default**
-response = None
-
 if user_input:
     user_input = user_input.strip()  # Hapus spasi ekstra
 
@@ -103,38 +100,24 @@ if user_input:
         query = user_input.replace("cari di internet", "").strip()
         search_results = search_web(query)
 
-        if search_results and isinstance(search_results, list):
-            response = "🔍 **Hasil pencarian di internet:**\n\n"
-            for idx, result in enumerate(search_results[:5], 1):
-                if "title" in result and "href" in result:
-                    response += f"{idx}. [{result['title']}]({result['href']})\n"
-                    if "snippet" in result:
-                        response += f"  _{result['snippet']}_\n\n"
-        else:
-            response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
+        response = "\n\n".join(search_results)
 
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
 
         # **🔹 FIX: Ambil hanya teks jawaban dari "answer" tanpa metadata**
-        if isinstance(response_data, dict) and "answer" in response_data:
-            response = response_data["answer"]
-        else:
-            response = str(response_data)
+        response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
         response_data = llm.invoke(user_input)
 
         # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
-        if isinstance(response_data, dict) and "content" in response_data:
-            response = response_data["content"]
-        else:
-            response = str(response_data)
+        response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
 
 # **Cegah output `None` atau kosong**
-if not response or response.strip() == "":
+if not response.strip():
     response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
 # **Tampilkan jawaban chatbot**
