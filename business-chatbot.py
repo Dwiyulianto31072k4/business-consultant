@@ -20,8 +20,6 @@ st.markdown(
             background: linear-gradient(135deg, #1c1c1c, #2d2d2d);
             font-family: 'Arial', sans-serif;
             color: white;
-            margin: 0;
-            padding: 0;
         }
         .chat-container {
             width: 100%;
@@ -58,11 +56,19 @@ st.markdown(
             float: left;
             margin-left: 10px;
         }
-        .message-container {
+        .file-upload {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            margin-bottom: 15px;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .file-bubble {
+            background: #3a3a3a;
+            color: white;
+            padding: 8px;
+            border-radius: 10px;
+            max-width: 80%;
+            font-size: 12px;
         }
         .input-container {
             position: fixed;
@@ -74,40 +80,6 @@ st.markdown(
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-        .upload-icon {
-            font-size: 24px;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            color: white;
-        }
-        .upload-icon:hover {
-            color: #6e3ff2;
-        }
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 120px;
-            background-color: black;
-            color: #fff;
-            text-align: center;
-            padding: 5px;
-            border-radius: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -133,6 +105,8 @@ if "history" not in st.session_state:
     st.session_state.history = []
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
 
 # === LAYOUT CHAT HISTORY ===
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
@@ -159,15 +133,43 @@ with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
 st.markdown("</div>", unsafe_allow_html=True)
 
+# === PROSES FILE JIKA DIUNGGAH ===
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        file_name = uploaded_file.name
+        st.session_state.uploaded_files.append(file_name)
+        st.session_state.history.append(("user", f"📂 {file_name} telah diunggah!"))
+
+    st.success("📂 File telah diunggah! Anda bisa memintaku untuk menganalisisnya.")
+
+    # Proses dan simpan file
+    documents = []
+    for uploaded_file in uploaded_files:
+        file_path = f"./temp_{uploaded_file.name}"
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        if uploaded_file.type == "application/pdf":
+            loader = PyPDFLoader(file_path)
+        elif uploaded_file.type == "text/plain":
+            loader = TextLoader(file_path)
+
+        documents.extend(loader.load())
+
+    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    split_docs = text_splitter.split_documents(documents)
+    st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
+    st.success("✅ Semua file berhasil diproses!")
+
+    st.rerun()
+
 # === PROSES INPUT USER ===
 if user_input:
-    user_input = user_input.strip()
     st.session_state.history.append(("user", user_input))
 
     # === PROSES RESPON AI ===
     response = "⚠️ Maaf, saya tidak dapat memberikan jawaban."
-    
-    # **CEK PENCARIAN INTERNET**
+
     if "cari di internet" in user_input.lower():
         try:
             query = user_input.replace("cari di internet", "").strip()
@@ -180,7 +182,6 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Gagal mengambil data: {str(e)}"
 
-    # **CEK ANALISIS DOKUMEN**
     elif st.session_state.retriever:
         try:
             response_data = ConversationalRetrievalChain.from_llm(
@@ -190,7 +191,6 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Kesalahan dalam pemrosesan file: {str(e)}"
 
-    # **RESPON DARI AI DENGAN REASONING**
     else:
         try:
             response_data = llm.invoke(f"Jelaskan dengan reasoning yang kuat: {user_input}")
@@ -198,7 +198,6 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Kesalahan dalam pemrosesan pertanyaan: {str(e)}"
 
-    # **MENYIMPAN & MENAMPILKAN RESPON AI**
     st.session_state.history.append(("bot", response))
     st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
     st.rerun()
