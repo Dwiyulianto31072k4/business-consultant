@@ -20,13 +20,7 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 # Inisialisasi Chatbot
 llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-st.title("📂 Chatbot dengan File Upload")
-
-import streamlit as st
-
-st.title("📂 Chatbot dengan File Upload")
-
+st.title("Your Business Consultant")
 # **🚀 Tambahkan CSS untuk Sticky Header**
 st.markdown("""
     <style>
