@@ -19,23 +19,32 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔥 UI Styling - Chat di Bawah Seperti ChatGPT**
+# **🔥 UI Styling - Chat Statis di Bawah Seperti ChatGPT**
 st.markdown("""
     <style>
-        .stChatContainer {
+        .chat-container {
             display: flex;
             flex-direction: column-reverse;
-            max-height: 70vh;
+            max-height: 65vh;
             overflow-y: auto;
             border: 1px solid #ccc;
             border-radius: 10px;
             padding: 10px;
+            background: #f8f9fa;
         }
-        .stChatInputContainer {
+        .chat-input-container {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
         .stChatMessage {
             border-radius: 12px;
@@ -55,8 +64,10 @@ st.markdown("""
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# **📎 Upload File Sebagai Sumber Data**
-uploaded_file = st.file_uploader("", type=["pdf", "txt"], label_visibility="collapsed")
+# **📎 Upload File Sebagai Sumber Data (Tetap di Samping Input Chat)**
+col1, col2 = st.columns([8, 2])
+with col2:
+    uploaded_file = st.file_uploader("📎 Upload File", type=["pdf", "txt"], label_visibility="collapsed")
 
 retriever = None  # Placeholder untuk retriever
 
@@ -85,7 +96,7 @@ conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, m
 
 # **📌 Chatbox Statis di Bawah**
 st.title("💬 Chatbot AI - Seperti ChatGPT")
-st.markdown('<div class="stChatContainer">', unsafe_allow_html=True)
+st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
 for role, text in reversed(st.session_state.history):
     with st.chat_message(role):
@@ -94,11 +105,10 @@ for role, text in reversed(st.session_state.history):
 st.markdown('</div>', unsafe_allow_html=True)
 
 # **📩 Input Chat dengan Upload File di Samping**
-col1, col2 = st.columns([8, 2])
+st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
 with col1:
     user_input = st.chat_input("Ketik pertanyaan Anda...")
-with col2:
-    st.file_uploader("Upload", type=["pdf", "txt"], label_visibility="collapsed")
+st.markdown('</div>', unsafe_allow_html=True)
 
 if user_input:
     user_input = user_input.strip()
