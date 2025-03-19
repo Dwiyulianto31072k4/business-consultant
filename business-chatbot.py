@@ -22,26 +22,28 @@ llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 st.title("Your Business Consultant")
 # **🚀 Tambahkan CSS untuk Sticky Header**
+
 st.markdown("""
     <style>
         /* Membuat header tetap di atas */
-        .appview-container {
-            padding-top: 80px; /* Tambahkan jarak biar header tidak ketutupan */
-        }
-        
         .fixed-header {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             background-color: #0e1117; /* Warna latar belakang header */
-            padding: 10px 0;
+            padding: 15px 0;
             text-align: center;
             font-size: 24px;
             font-weight: bold;
             color: white;
             z-index: 999;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Mencegah konten terpotong di bawah header */
+        .appview-container {
+            padding-top: 70px !important; /* Sesuaikan dengan tinggi header */
         }
 
         /* Menyesuaikan tampilan chatbot */
@@ -58,7 +60,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# **🔹 Tambahkan Header Static**
+# **Tambahkan Header Static**
 st.markdown('<div class="fixed-header">🤖 Chatbot dengan File Upload</div>', unsafe_allow_html=True)
 
 
