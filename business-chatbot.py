@@ -31,7 +31,7 @@ st.markdown(
             height: 75vh;
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; /* Pesan terbaru tetap di bawah */
+            flex-direction: column;
         }
         .chat-bubble {
             padding: 12px;
@@ -63,15 +63,6 @@ st.markdown(
             flex-direction: column;
             align-items: flex-start;
             margin-bottom: 15px;
-        }
-        .upload-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .upload-box {
-            width: 150px;
         }
         .input-container {
             position: fixed;
@@ -109,9 +100,9 @@ if "history" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# === LAYOUT CHAT HISTORY (Pesan terbaru di bawah) ===
+# === LAYOUT CHAT HISTORY ===
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for role, text in reversed(st.session_state.history):  # Menampilkan chat dari atas ke bawah
+for role, text in st.session_state.history:  # Menampilkan chat dari atas ke bawah
     align = "flex-end" if role == "user" else "flex-start"
     bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
     st.markdown(f"""
@@ -134,35 +125,15 @@ with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# === PROSES FILE JIKA DIUNGGAH ===
-if uploaded_files:
-    st.success("📂 File berhasil diunggah! Chatbot akan menggunakan dokumen jika dibutuhkan.")
-    documents = []
-    
-    for uploaded_file in uploaded_files:
-        with st.spinner(f"📖 Memproses {uploaded_file.name}..."):
-            file_path = f"./temp_{uploaded_file.name}"
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-            if uploaded_file.type == "application/pdf":
-                loader = PyPDFLoader(file_path)
-            elif uploaded_file.type == "text/plain":
-                loader = TextLoader(file_path)
-
-            documents.extend(loader.load())
-
-    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    split_docs = text_splitter.split_documents(documents)
-    st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
-    st.success("✅ Semua file berhasil diproses!")
-
-# === LOGIKA CHATBOT ===
+# === PROSES INPUT USER ===
 if user_input:
     user_input = user_input.strip()
 
-    # Simpan pesan ke history agar langsung muncul di atas
+    # **Langsung tampilkan input user ke UI sebelum chatbot merespons**
     st.session_state.history.append(("user", user_input))
+
+    # Update tampilan langsung
+    st.rerun()
 
     # === CEK PENCARIAN INTERNET ===
     if "cari di internet" in user_input.lower():
@@ -195,4 +166,8 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
 
+    # Tambahkan jawaban bot ke dalam history
     st.session_state.history.append(("bot", response))
+
+    # **Otomatis refresh tampilan setelah chatbot merespons**
+    st.rerun()
