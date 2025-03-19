@@ -9,6 +9,7 @@ from langchain.text_splitter import CharacterTextSplitter
 import requests
 import os
 from bs4 import BeautifulSoup
+import time
 
 # === KONFIGURASI UTAMA ===
 st.set_page_config(page_title="Chatbot AI", page_icon="💬", layout="wide")
@@ -102,7 +103,7 @@ if "retriever" not in st.session_state:
 
 # === LAYOUT CHAT HISTORY ===
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for role, text in st.session_state.history:  # Menampilkan chat dari atas ke bawah
+for role, text in st.session_state.history:
     align = "flex-end" if role == "user" else "flex-start"
     bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
     st.markdown(f"""
@@ -128,11 +129,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # === PROSES INPUT USER ===
 if user_input:
     user_input = user_input.strip()
-
-    # **Tampilkan input user ke UI sebelum bot merespons**
     st.session_state.history.append(("user", user_input))
-
-    # Update tampilan langsung
     st.rerun()
 
     # === CEK PENCARIAN INTERNET ===
@@ -158,19 +155,26 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam pemrosesan file: {str(e)}"
 
-    # === JIKA CHAT BIASA ===
+    # === JIKA CHAT BIASA DENGAN REASONING ===
     else:
         try:
-            response_data = llm.invoke(user_input)
+            prompt = (
+                "Jawablah dengan reasoning yang logis dan rinci. "
+                "Analisis dulu sebelum memberikan jawaban yang terlalu cepat. "
+                "Jika perlu, gunakan contoh konkret untuk memperjelas jawaban. "
+                "Pertanyaan pengguna: " + user_input
+            )
+            response_data = llm.invoke(prompt)
             response = response_data if isinstance(response_data, str) else response_data.content
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
 
-    # **Tambahkan jawaban bot ke dalam history**
+    # Tambahkan reasoning dan pastikan jawaban bernilai tinggi
+    response = f"🧠 **Pemikiran AI:**\n{response}"
     st.session_state.history.append(("bot", response))
 
-    # **Auto-scroll ke bawah setelah chatbot merespons**
+    # Auto-scroll ke bawah setelah chatbot merespons
     st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
 
-    # **Update tampilan chat**
+    # Update tampilan chat
     st.rerun()
