@@ -13,6 +13,54 @@ from bs4 import BeautifulSoup
 # === KONFIGURASI UTAMA ===
 st.set_page_config(page_title="Chatbot AI", page_icon="💬", layout="wide")
 
+st.markdown(
+    """
+    <style>
+        body {
+            background: linear-gradient(135deg, #6e3ff2, #c471ed);
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+        }
+        .chat-bubble {
+            padding: 12px;
+            margin: 5px;
+            border-radius: 20px;
+            max-width: 80%;
+            font-size: 14px;
+            display: inline-block;
+        }
+        .chat-bubble-user {
+            background-color: #8a2be2;
+            color: white;
+            text-align: right;
+            align-self: flex-end;
+            float: right;
+            margin-right: 10px;
+        }
+        .chat-bubble-bot {
+            background-color: white;
+            color: black;
+            text-align: left;
+            align-self: flex-start;
+            float: left;
+            margin-left: 10px;
+        }
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # === LOAD API KEY ===
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
@@ -55,11 +103,18 @@ if mode == "Upload File":
         st.success("✅ Semua file berhasil diproses!")
 
 # === MENAMPILKAN HISTORY CHAT ===
-st.markdown("<h3 style='text-align: center;'>💬 Chatbot AI</h3>", unsafe_allow_html=True)
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 for role, text in st.session_state.history:
     align = "flex-end" if role == "user" else "flex-start"
     bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-    st.markdown(f"<div style='align-items: {align};'><div class='{bubble_class}'>{text}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class='message-container' style='align-items: {align};'>
+            <div class='chat-bubble {bubble_class}'>
+                {text}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # === INPUT CHAT ===
 user_input = st.chat_input("Ketik pesan Anda...")
