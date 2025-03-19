@@ -40,16 +40,6 @@ st.markdown("""
         .appview-container {
             padding-top: 80px !important;
         }
-        .stChatMessage {
-            border-radius: 15px;
-            padding: 10px;
-        }
-        .stChatMessage.user {
-            background-color: #DCF8C6;
-        }
-        .stChatMessage.assistant {
-            background-color: #EDEDED;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -62,7 +52,6 @@ mode = st.radio("Pilih mode interaksi:", ["Tanya Langsung", "Upload File"])
 retriever = None  # Placeholder untuk retriever
 
 if mode == "Upload File":
-    # **🔹 Fitur Upload File**
     uploaded_file = st.file_uploader("Upload file (PDF, TXT)", type=["pdf", "txt"])
     
     if uploaded_file:
@@ -71,13 +60,11 @@ if mode == "Upload File":
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            # **🔹 Load File Sesuai Format**
             if uploaded_file.type == "application/pdf":
                 loader = PyPDFLoader(file_path)
             elif uploaded_file.type == "text/plain":
                 loader = TextLoader(file_path)
 
-            # **🔹 Split Text & Simpan ke VectorStore**
             documents = loader.load()
             text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
             split_docs = text_splitter.split_documents(documents)
@@ -125,7 +112,6 @@ for role, text in st.session_state.history:
 user_input = st.chat_input("Ketik pertanyaan Anda...")
 
 if user_input:
-    # Tampilkan pertanyaan user
     with st.chat_message("user"):
         st.write(user_input)
 
@@ -137,13 +123,17 @@ if user_input:
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
-
-        # **Ambil hanya teks jawaban dari response**
         response = response_data.get("answer", "⚠️ Terjadi kesalahan dalam mendapatkan jawaban.")
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
-        response = llm.invoke(user_input)
+        response_data = llm.invoke(user_input)
+
+        # **Ambil hanya teks jawaban, tanpa JSON metadata**
+        if isinstance(response_data, dict) and "content" in response_data:
+            response = response_data["content"]
+        else:
+            response = response_data  # Jika tidak dalam format dict
 
     # **Tampilkan jawaban chatbot**
     with st.chat_message("assistant"):
