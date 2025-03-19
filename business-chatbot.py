@@ -28,6 +28,10 @@ st.markdown(
             max-width: 700px;
             margin: auto;
             padding: 20px;
+            height: 75vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; /* Pesan terbaru tetap di bawah */
         }
         .chat-bubble {
             padding: 12px;
@@ -69,7 +73,18 @@ st.markdown(
         .upload-box {
             width: 150px;
         }
-       @keyframes fadeIn {
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #1c1c1c;
+            padding: 10px 20px;
+            box-shadow: 0 -2px 5px rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
@@ -94,7 +109,22 @@ if "history" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# === LAYOUT UPLOAD FILE & INPUT CHAT SEJAJAR ===
+# === LAYOUT CHAT HISTORY (Pesan terbaru di bawah) ===
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for role, text in reversed(st.session_state.history):  # Menampilkan chat dari atas ke bawah
+    align = "flex-end" if role == "user" else "flex-start"
+    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
+    st.markdown(f"""
+        <div class='message-container' style='align-items: {align};'>
+            <div class='chat-bubble {bubble_class}'>
+                {text}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
+# === LAYOUT INPUT CHAT & UPLOAD FILE (di bagian bawah, fixed position) ===
+st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 col1, col2 = st.columns([1, 5])  # 1 bagian kecil untuk upload, 5 bagian besar untuk input chat
 
 with col1:
@@ -102,6 +132,7 @@ with col1:
 
 with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
+st.markdown("</div>", unsafe_allow_html=True)
 
 # === PROSES FILE JIKA DIUNGGAH ===
 if uploaded_files:
@@ -130,22 +161,8 @@ if uploaded_files:
 if user_input:
     user_input = user_input.strip()
 
-    # Simpan pesan ke history lebih awal agar muncul langsung di atas
+    # Simpan pesan ke history agar langsung muncul di atas
     st.session_state.history.append(("user", user_input))
-
-    # Update history chat sebelum chatbot merespons
-    st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-    for role, text in st.session_state.history:
-        align = "flex-end" if role == "user" else "flex-start"
-        bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-        st.markdown(f"""
-            <div class='message-container' style='align-items: {align};'>
-                <div class='chat-bubble {bubble_class}'>
-                    {text}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
     # === CEK PENCARIAN INTERNET ===
     if "cari di internet" in user_input.lower():
@@ -178,20 +195,4 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
 
-    response = response if response.strip() else "⚠️ Tidak ada jawaban."
     st.session_state.history.append(("bot", response))
-
-# === MENAMPILKAN HISTORY CHAT (Pesan terbaru di bawah) ===
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for role, text in reversed(st.session_state.history):  # Urutan chat dari atas ke bawah
-    align = "flex-end" if role == "user" else "flex-start"
-    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-    st.markdown(f"""
-        <div class='message-container' style='align-items: {align};'>
-            <div class='chat-bubble {bubble_class}'>
-                {text}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
