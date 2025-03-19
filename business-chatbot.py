@@ -153,15 +153,6 @@ st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 col1, col2 = st.columns([1, 5])
 
 with col1:
-    st.markdown(
-        """
-        <div class="tooltip">
-            <button class="upload-icon">📂</button>
-            <span class="tooltiptext">Upload File</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
     uploaded_files = st.file_uploader("", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
 
 with col2:
@@ -172,9 +163,11 @@ st.markdown("</div>", unsafe_allow_html=True)
 if user_input:
     user_input = user_input.strip()
     st.session_state.history.append(("user", user_input))
-    st.rerun()
 
-    # === CEK PENCARIAN INTERNET ===
+    # === PROSES RESPON AI ===
+    response = "⚠️ Maaf, saya tidak dapat memberikan jawaban."
+    
+    # **CEK PENCARIAN INTERNET**
     if "cari di internet" in user_input.lower():
         try:
             query = user_input.replace("cari di internet", "").strip()
@@ -183,25 +176,29 @@ if user_input:
             response = requests.get(search_url, headers=headers)
             soup = BeautifulSoup(response.text, "html.parser")
             results = soup.find_all("h3")
-            response = "\n".join([res.get_text() for res in results[:5]]) or "⚠️ Tidak ada hasil pencarian yang ditemukan."
+            response = "\n".join([res.get_text() for res in results[:5]]) or "⚠️ Tidak ada hasil pencarian."
         except Exception as e:
-            response = f"⚠️ Gagal mengambil data internet: {str(e)}"
+            response = f"⚠️ Gagal mengambil data: {str(e)}"
 
-    # === CEK ANALISIS DOKUMEN ===
+    # **CEK ANALISIS DOKUMEN**
     elif st.session_state.retriever:
         try:
             response_data = ConversationalRetrievalChain.from_llm(
                 llm, retriever=st.session_state.retriever, memory=memory
             ).invoke({"question": user_input})
-            response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia dari dokumen.")
+            response = response_data.get("answer", "⚠️ Tidak ada jawaban dari dokumen.")
         except Exception as e:
-            response = f"⚠️ Terjadi kesalahan dalam pemrosesan file: {str(e)}"
+            response = f"⚠️ Kesalahan dalam pemrosesan file: {str(e)}"
 
-    # === JIKA CHAT BIASA DENGAN REASONING ===
+    # **RESPON DARI AI DENGAN REASONING**
     else:
-        response_data = llm.invoke(f"Berikan jawaban dengan reasoning yang logis: {user_input}")
-        response = response_data if isinstance(response_data, str) else response_data.content
+        try:
+            response_data = llm.invoke(f"Jelaskan dengan reasoning yang kuat: {user_input}")
+            response = response_data if isinstance(response_data, str) else response_data.content
+        except Exception as e:
+            response = f"⚠️ Kesalahan dalam pemrosesan pertanyaan: {str(e)}"
 
+    # **MENYIMPAN & MENAMPILKAN RESPON AI**
     st.session_state.history.append(("bot", response))
     st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
     st.rerun()
