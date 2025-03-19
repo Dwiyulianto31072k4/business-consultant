@@ -114,9 +114,9 @@ for role, text in st.session_state.history:  # Menampilkan chat dari atas ke baw
     """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# === LAYOUT INPUT CHAT & UPLOAD FILE (di bagian bawah, fixed position) ===
+# === LAYOUT INPUT CHAT & UPLOAD FILE ===
 st.markdown("<div class='input-container'>", unsafe_allow_html=True)
-col1, col2 = st.columns([1, 5])  # 1 bagian kecil untuk upload, 5 bagian besar untuk input chat
+col1, col2 = st.columns([1, 5])
 
 with col1:
     uploaded_files = st.file_uploader("📂", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
@@ -129,7 +129,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 if user_input:
     user_input = user_input.strip()
 
-    # **Langsung tampilkan input user ke UI sebelum chatbot merespons**
+    # **Tampilkan input user ke UI sebelum bot merespons**
     st.session_state.history.append(("user", user_input))
 
     # Update tampilan langsung
@@ -166,8 +166,11 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
 
-    # Tambahkan jawaban bot ke dalam history
+    # **Tambahkan jawaban bot ke dalam history**
     st.session_state.history.append(("bot", response))
 
-    # **Otomatis refresh tampilan setelah chatbot merespons**
+    # **Auto-scroll ke bawah setelah chatbot merespons**
+    st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
+
+    # **Update tampilan chat**
     st.rerun()
