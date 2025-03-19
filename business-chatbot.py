@@ -40,7 +40,7 @@ def search_web(query, num_results=5):
     
     if response.status_code == 200:
         results = response.json().get("organic_results", [])
-        return [{"title": res["title"], "href": res["link"], "snippet": res["snippet"]} for res in results]
+        return [{"title": res["title"], "href": res["link"], "snippet": res.get("snippet", "")} for res in results]
     else:
         return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
 
@@ -88,7 +88,12 @@ for role, text in st.session_state.history:
 # **🔹 Input Chat di Bawah**
 user_input = st.chat_input("Ketik pertanyaan Anda...")
 
+# **🔹 Pastikan jawaban selalu memiliki nilai default**
+response = "⚠️ Silakan masukkan pertanyaan yang valid."
+
 if user_input:
+    user_input = user_input.strip()  # Hapus spasi ekstra
+
     # Tampilkan pertanyaan user
     with st.chat_message("user"):
         st.write(user_input)
@@ -112,27 +117,26 @@ if user_input:
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
 
-        # Ambil hanya teks jawaban dari response
+        # **🔹 FIX: Ambil hanya teks jawaban dari "answer" tanpa metadata**
         if isinstance(response_data, dict) and "answer" in response_data:
             response = response_data["answer"]
         else:
             response = str(response_data)
 
-# **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
-else:
-    if user_input:  # Pastikan user_input tidak None sebelum digunakan
-        user_input = user_input.strip()  # Hapus spasi ekstra dari input
+    # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
+    else:
         response_data = llm.invoke(user_input)
 
         # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
         if isinstance(response_data, dict) and "content" in response_data:
-            response = response_data["content"]  # Ambil hanya isi jawaban
+            response = response_data["content"]
         else:
-            response = str(response_data)  # Jika tidak dalam format dict, ubah ke string
-    else:
-        response = "⚠️ Silakan masukkan pertanyaan yang valid."
+            response = str(response_data)
 
 # **Tampilkan jawaban chatbot**
 with st.chat_message("assistant"):
     st.write(response)
 
+# **Simpan history chat**
+st.session_state.history.append(("user", user_input))
+st.session_state.history.append(("assistant", response))
