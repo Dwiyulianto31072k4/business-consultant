@@ -127,14 +127,15 @@ if user_input:
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
 # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
+# **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
 else:
     response_data = llm.invoke(user_input)
 
     # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
-    if isinstance(response_data, dict) and "content" in response_data:
-        response = response_data["content"]  # Hanya menampilkan teks jawaban
+    if isinstance(response_data, dict):
+        response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
     else:
-        response = str(response_data)  # Jika tidak dalam format dict, ubah ke string
+        response = str(response_data)  # Jika bukan dict, ubah ke string
 
 # **Tampilkan jawaban chatbot**
 with st.chat_message("assistant"):
@@ -143,4 +144,5 @@ with st.chat_message("assistant"):
 # **Simpan history chat**
 st.session_state.history.append(("user", user_input))
 st.session_state.history.append(("assistant", response))
+
 
