@@ -133,33 +133,31 @@ with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# === PROSES FILE JIKA DIUNGGAH ===
+# === PROSES FILE JIKA DIUNGGAH KAPAN SAJA ===
 if uploaded_files:
     for uploaded_file in uploaded_files:
         file_name = uploaded_file.name
-        st.session_state.uploaded_files.append(file_name)
-        st.session_state.history.append(("user", f"📂 {file_name} telah diunggah!"))
+        if file_name not in st.session_state.uploaded_files:
+            st.session_state.uploaded_files.append(file_name)
+            st.session_state.history.append(("user", f"📂 {file_name} telah diunggah!"))
 
-    st.success("📂 File telah diunggah! Anda bisa memintaku untuk menganalisisnya.")
+            # Proses dan simpan file
+            documents = []
+            file_path = f"./temp_{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-    # Proses dan simpan file
-    documents = []
-    for uploaded_file in uploaded_files:
-        file_path = f"./temp_{uploaded_file.name}"
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+            if uploaded_file.type == "application/pdf":
+                loader = PyPDFLoader(file_path)
+            elif uploaded_file.type == "text/plain":
+                loader = TextLoader(file_path)
 
-        if uploaded_file.type == "application/pdf":
-            loader = PyPDFLoader(file_path)
-        elif uploaded_file.type == "text/plain":
-            loader = TextLoader(file_path)
+            documents.extend(loader.load())
 
-        documents.extend(loader.load())
-
-    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    split_docs = text_splitter.split_documents(documents)
-    st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
-    st.success("✅ Semua file berhasil diproses!")
+            text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+            split_docs = text_splitter.split_documents(documents)
+            st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
+            st.success(f"✅ {file_name} berhasil diproses!")
 
     st.rerun()
 
@@ -191,13 +189,5 @@ if user_input:
         except Exception as e:
             response = f"⚠️ Kesalahan dalam pemrosesan file: {str(e)}"
 
-    else:
-        try:
-            response_data = llm.invoke(f"Jelaskan dengan reasoning yang kuat: {user_input}")
-            response = response_data if isinstance(response_data, str) else response_data.content
-        except Exception as e:
-            response = f"⚠️ Kesalahan dalam pemrosesan pertanyaan: {str(e)}"
-
     st.session_state.history.append(("bot", response))
-    st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
     st.rerun()
