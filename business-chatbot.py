@@ -129,11 +129,11 @@ if user_input:
     else:
         response_data = llm.invoke(user_input)
 
-        # **Ambil hanya teks jawaban, tanpa JSON metadata**
+        # **🔹 FIX: Ambil hanya teks jawaban, tanpa JSON metadata**
         if isinstance(response_data, dict) and "content" in response_data:
             response = response_data["content"]
         else:
-            response = response_data  # Jika tidak dalam format dict
+            response = str(response_data)  # Jika tidak dalam format dict, convert ke string
 
     # **Tampilkan jawaban chatbot**
     with st.chat_message("assistant"):
