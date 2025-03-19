@@ -56,12 +56,6 @@ st.markdown(
             float: left;
             margin-left: 10px;
         }
-        .file-upload {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
         .file-bubble {
             background: #3a3a3a;
             color: white;
@@ -127,7 +121,7 @@ st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 col1, col2 = st.columns([1, 5])
 
 with col1:
-    uploaded_files = st.file_uploader("", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
+    uploaded_files = st.file_uploader("📂 Upload", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
 
 with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
@@ -168,19 +162,7 @@ if user_input:
     # === PROSES RESPON AI ===
     response = "⚠️ Maaf, saya tidak dapat memberikan jawaban."
 
-    if "cari di internet" in user_input.lower():
-        try:
-            query = user_input.replace("cari di internet", "").strip()
-            search_url = f"https://www.google.com/search?q={query}"
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(search_url, headers=headers)
-            soup = BeautifulSoup(response.text, "html.parser")
-            results = soup.find_all("h3")
-            response = "\n".join([res.get_text() for res in results[:5]]) or "⚠️ Tidak ada hasil pencarian."
-        except Exception as e:
-            response = f"⚠️ Gagal mengambil data: {str(e)}"
-
-    elif st.session_state.retriever:
+    if st.session_state.retriever:
         try:
             response_data = ConversationalRetrievalChain.from_llm(
                 llm, retriever=st.session_state.retriever, memory=memory
