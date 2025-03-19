@@ -9,111 +9,139 @@ from langchain.text_splitter import CharacterTextSplitter
 import requests
 import os
 
-# **🚀 Load API Key from Streamlit Secrets**
-if "OPENAI_API_KEY" not in st.secrets:
-    st.error("❌ API Key OpenAI not found in Secrets! Add it in Streamlit Cloud.")
-    st.stop()
+# === 🔹 KONFIGURASI UTAMA ===
+st.set_page_config(page_title="Chatbot AI", page_icon="💬", layout="wide")
 
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-
-# **🚀 Initialize Chatbot**
-llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-# **🔹 UI Styling**
+# === 🔥 TAMPILAN UI CUSTOM ===
 st.markdown(
     """
     <style>
         body {
-            background-color: white;
+            background-color: #ffffff;
+            font-family: 'Arial', sans-serif;
         }
-        .chat-container {
-            max-width: 800px;
-            margin: auto;
+        .css-18e3th9 {
+            padding-top: 20px;
         }
-        .chat-header {
-            text-align: center;
-            font-size: 26px;
-            font-weight: bold;
-            color: #D90429;
-            margin-bottom: 10px;
-        }
-        .chat-box {
-            border-radius: 10px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            margin-bottom: 10px;
-        }
-        .chat-input-container {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-        }
-        .chat-input {
-            width: 100%;
+        .chat-bubble {
             padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 80%;
         }
-        .upload-container {
+        .chat-bubble-user {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+        }
+        .chat-bubble-bot {
+            background-color: #f1f0f0;
+        }
+        .message-container {
             display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
+            flex-direction: column;
+            align-items: flex-start;
         }
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
-# **🔹 Chatbot UI Layout**
-st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-st.markdown('<div class="chat-header">\U0001F4AC Chatbot AI</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>How can I help you today?</p>", unsafe_allow_html=True)
+# === 🚀 LOAD API KEY ===
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("❌ API Key OpenAI tidak ditemukan di Secrets! Tambahkan di Streamlit Cloud.")
+    st.stop()
 
-# **🔹 Display Chat History**
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+
+# === 🚀 INISIALISASI MODEL CHAT ===
+llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
+# === 💾 SIMPAN HISTORY CHAT ===
 if "history" not in st.session_state:
     st.session_state.history = []
 
-for role, text in st.session_state.history:
-    if role == "user":
-        st.markdown(f'<div class="chat-box" style="background:#ffe5e5;">\U0001F464 {text}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="chat-box" style="background:#ffffcc;">\U0001F4DA {text}</div>', unsafe_allow_html=True)
+# === 🔹 PILIHAN MODE INTERAKSI ===
+mode = st.radio("Pilih Mode Interaksi:", ["Chat", "Upload File"], horizontal=True)
 
-# **🔹 User Input Section**
-user_input = st.text_input("", placeholder="Type your message here...", key="chat_input", label_visibility="collapsed")
-
-# **🔹 File Upload Section (Right-Aligned)**
-col1, col2 = st.columns([4, 1])
-with col2:
-    uploaded_file = st.file_uploader("Upload", type=["pdf", "txt"], label_visibility="collapsed")
-
-# **🔹 Process Uploaded File**
+# === 📂 FITUR UPLOAD FILE ===
 retriever = None
-if uploaded_file:
-    file_path = f"./temp_{uploaded_file.name}"
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    loader = PyPDFLoader(file_path) if uploaded_file.type == "application/pdf" else TextLoader(file_path)
-    documents = loader.load()
-    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    split_docs = text_splitter.split_documents(documents)
-    retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
-    st.success("✅ File uploaded successfully!")
+if mode == "Upload File":
+    uploaded_file = st.file_uploader("Unggah file (PDF, TXT)", type=["pdf", "txt"])
+    if uploaded_file:
+        with st.spinner("📖 Memproses file..."):
+            file_path = f"./temp_{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-# **🔹 Process User Input**
+            if uploaded_file.type == "application/pdf":
+                loader = PyPDFLoader(file_path)
+            elif uploaded_file.type == "text/plain":
+                loader = TextLoader(file_path)
+
+            documents = loader.load()
+            text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+            split_docs = text_splitter.split_documents(documents)
+            retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
+            st.success("✅ File berhasil diunggah dan diproses!")
+
+# === 💬 MENAMPILKAN HISTORY CHAT ===
+st.markdown("<h3 style='text-align: center;'>💬 Chatbot AI</h3>", unsafe_allow_html=True)
+for role, text in st.session_state.history:
+    align = "flex-end" if role == "user" else "flex-start"
+    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
+    st.markdown(
+        f"""
+        <div class='message-container' style='align-items: {align};'>
+            <div class='chat-bubble {bubble_class}'>
+                {text}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# === 📝 INPUT CHAT ===
+user_input = st.chat_input("Ketik pesan Anda...")
+
+# === 🤖 LOGIKA CHATBOT ===
 if user_input:
+    user_input = user_input.strip()
+
+    # Tampilkan input pengguna
     st.session_state.history.append(("user", user_input))
-    
-    if retriever:
-        response_data = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory).invoke({"question": user_input})
-        response = response_data.get("answer", "⚠️ No answer available.")
+
+    # === 🔍 Jika pengguna ingin cari di internet ===
+    if "cari di internet" in user_input.lower():
+        response = "🔍 [Pencarian internet belum tersedia di versi ini]"
+
+    # === 🗂 Jika ada file diunggah, gunakan retriever ===
+    elif retriever:
+        response_data = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory).invoke(
+            {"question": user_input}
+        )
+        response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
+
+    # === 💡 Jika hanya chat biasa ===
     else:
         response_data = llm.invoke(user_input)
-        response = response_data.get("content", "⚠️ No answer available.")
-    
-    st.session_state.history.append(("assistant", response))
-    st.rerun()
+        response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
 
-st.markdown('</div>', unsafe_allow_html=True)
+    # 💡 Pastikan tidak ada respons kosong
+    if not response.strip():
+        response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+
+    # Tambahkan ke history chat
+    st.session_state.history.append(("bot", response))
+
+    # === ✅ Tampilkan respons chatbot ===
+    st.markdown(
+        f"""
+        <div class='message-container' style='align-items: flex-start;'>
+            <div class='chat-bubble chat-bubble-bot'>
+                {response}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
