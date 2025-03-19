@@ -1,5 +1,5 @@
 import streamlit as st
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
@@ -17,7 +17,7 @@ if "OPENAI_API_KEY" not in st.secrets:
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # **🚀 Inisialisasi Chatbot**
-llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4")
+llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
 # **🔥 UI Streamlit - Sticky Header & CSS Custom**
