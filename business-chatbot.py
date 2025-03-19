@@ -9,7 +9,6 @@ from langchain.text_splitter import CharacterTextSplitter
 import requests
 import os
 from bs4 import BeautifulSoup
-import time
 
 # === KONFIGURASI UTAMA ===
 st.set_page_config(page_title="Chatbot AI", page_icon="💬", layout="wide")
@@ -76,6 +75,40 @@ st.markdown(
             justify-content: center;
             align-items: center;
         }
+        .upload-icon {
+            font-size: 24px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: white;
+        }
+        .upload-icon:hover {
+            color: #6e3ff2;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            padding: 5px;
+            border-radius: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -120,7 +153,16 @@ st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 col1, col2 = st.columns([1, 5])
 
 with col1:
-    uploaded_files = st.file_uploader("📂", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
+    st.markdown(
+        """
+        <div class="tooltip">
+            <button class="upload-icon">📂</button>
+            <span class="tooltiptext">Upload File</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    uploaded_files = st.file_uploader("", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
 
 with col2:
     user_input = st.chat_input("Ketik pesan Anda...")
@@ -157,24 +199,9 @@ if user_input:
 
     # === JIKA CHAT BIASA DENGAN REASONING ===
     else:
-        try:
-            prompt = (
-                "Jawablah dengan reasoning yang logis dan rinci. "
-                "Analisis dulu sebelum memberikan jawaban yang terlalu cepat. "
-                "Jika perlu, gunakan contoh konkret untuk memperjelas jawaban. "
-                "Pertanyaan pengguna: " + user_input
-            )
-            response_data = llm.invoke(prompt)
-            response = response_data if isinstance(response_data, str) else response_data.content
-        except Exception as e:
-            response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
+        response_data = llm.invoke(f"Berikan jawaban dengan reasoning yang logis: {user_input}")
+        response = response_data if isinstance(response_data, str) else response_data.content
 
-    # Tambahkan reasoning dan pastikan jawaban bernilai tinggi
-    response = f"🧠 **Pemikiran AI:**\n{response}"
     st.session_state.history.append(("bot", response))
-
-    # Auto-scroll ke bawah setelah chatbot merespons
     st.markdown("<script>window.scrollTo(0, document.body.scrollHeight);</script>", unsafe_allow_html=True)
-
-    # Update tampilan chat
     st.rerun()
