@@ -17,7 +17,7 @@ st.markdown(
     """
     <style>
         body {
-            background: linear-gradient(135deg, #6e3ff2, #c471ed);
+            background: linear-gradient(135deg, #1c1c1c, #2d2d2d);
             font-family: 'Arial', sans-serif;
             color: white;
             margin: 0;
@@ -25,18 +25,18 @@ st.markdown(
         }
         .chat-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 700px;
             margin: auto;
-            padding: 10px;
+            padding: 20px;
         }
         .chat-bubble {
-            padding: 15px;
-            margin: 8px;
+            padding: 12px;
+            margin: 8px 0;
             border-radius: 20px;
             max-width: 80%;
             font-size: 14px;
             display: inline-block;
-            animation: fadeIn 0.4s ease-in-out;
+            animation: fadeIn 0.3s ease-in-out;
         }
         .chat-bubble-user {
             background: linear-gradient(135deg, #8a2be2, #6e3ff2);
@@ -58,7 +58,16 @@ st.markdown(
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+        .upload-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .upload-box {
+            width: 150px;
         }
        @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -99,10 +108,14 @@ for role, text in st.session_state.history:
     """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# === TOMBOL UPLOAD FILE DI SEBELAH INPUT CHAT ===
-col1, col2 = st.columns([1, 5])  # Kolom untuk Upload dan Input Chat
+# === LAYOUT UPLOAD FILE & INPUT CHAT SEJAJAR ===
+col1, col2 = st.columns([1, 5])  # 1 bagian kecil untuk upload, 5 bagian besar untuk input chat
+
 with col1:
     uploaded_files = st.file_uploader("📂", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
+
+with col2:
+    user_input = st.chat_input("Ketik pesan Anda...")
 
 # === PROSES FILE JIKA DIUNGGAH ===
 if uploaded_files:
@@ -126,10 +139,6 @@ if uploaded_files:
     split_docs = text_splitter.split_documents(documents)
     st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
     st.success("✅ Semua file berhasil diproses!")
-
-# === INPUT CHAT ===
-with col2:
-    user_input = st.chat_input("Ketik pesan Anda...")
 
 # === LOGIKA CHATBOT ===
 if user_input:
