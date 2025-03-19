@@ -20,11 +20,14 @@ st.markdown(
             background: linear-gradient(135deg, #6e3ff2, #c471ed);
             font-family: 'Arial', sans-serif;
             color: white;
+            margin: 0;
+            padding: 0;
         }
         .chat-container {
             width: 100%;
             max-width: 600px;
             margin: auto;
+            padding: 10px;
         }
         .chat-bubble {
             padding: 12px;
@@ -33,9 +36,10 @@ st.markdown(
             max-width: 80%;
             font-size: 14px;
             display: inline-block;
+            animation: fadeIn 0.3s ease-in-out;
         }
         .chat-bubble-user {
-            background-color: #8a2be2;
+            background: linear-gradient(135deg, #8a2be2, #6e3ff2);
             color: white;
             text-align: right;
             align-self: flex-end;
@@ -56,11 +60,32 @@ st.markdown(
             align-items: flex-start;
             margin-bottom: 20px;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* === Input Chat Styling === */
+        input[type="text"] {
+            width: 100%;
+            max-width: 600px;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 25px;
+            border: 2px solid #8a2be2;
+            background-color: #282828;
+            color: white;
+            font-size: 14px;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border: 2px solid #c471ed;
+            background-color: #333;
+        }
     </style>
     """,
     unsafe_allow_html=True,
 )
-
+,
 # === LOAD API KEY ===
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
