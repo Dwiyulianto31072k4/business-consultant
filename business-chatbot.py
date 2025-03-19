@@ -1,20 +1,16 @@
 import streamlit as st
-import os
-from dotenv import load_dotenv
 from langchain_community.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
-from langchain.vectorstores import FAISS
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import OpenAIEmbeddings
 
-# Load API Key dari .env atau Streamlit Secrets
-load_dotenv()
-openai_api_key = os.getenv("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")
-
-# Validasi API Key
-if not openai_api_key:
-    st.error("❌ API Key OpenAI tidak ditemukan! Pastikan sudah diatur di .env atau Secrets di Streamlit Cloud.")
+# Load API Key dari Streamlit Secrets
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("❌ API Key OpenAI tidak ditemukan di Secrets! Tambahkan di Streamlit Cloud.")
     st.stop()
+
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Inisialisasi Chatbot
 llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4")
@@ -44,4 +40,3 @@ if user_input:
 # Tampilkan percakapan
 for role, text in st.session_state.history:
     st.write(f"**{role}:** {text}")
-
