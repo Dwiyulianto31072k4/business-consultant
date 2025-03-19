@@ -92,7 +92,7 @@ conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, m
 def search_web(query, num_results=5):
     """Melakukan pencarian di Google menggunakan SerpAPI"""
     if "SERP_API_KEY" not in st.secrets:
-        return [{"title": "❌ API Key SerpAPI tidak ditemukan di Secrets!", "href": "#"}]
+        return "❌ API Key SerpAPI tidak ditemukan di Secrets!"
 
     api_key = st.secrets["SERP_API_KEY"]
     
@@ -108,9 +108,9 @@ def search_web(query, num_results=5):
     
     if response.status_code == 200:
         results = response.json().get("organic_results", [])
-        return [{"title": res["title"], "href": res["link"], "snippet": res["snippet"]} for res in results]
+        return "\n".join([f"🔍 {res['title']} - {res['link']}\n{res.get('snippet', '')}" for res in results[:5]])
     else:
-        return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
+        return "❌ Tidak ada hasil pencarian untuk kata kunci ini."
 
 # **💾 Simpan history chat di session**
 if "history" not in st.session_state:
@@ -132,24 +132,14 @@ if user_input:
     # **🔍 Deteksi apakah butuh Web Search**
     if "cari di internet" in user_input.lower():
         query = user_input.replace("cari di internet", "").strip()
-        search_results = search_web(query)
-
-        if search_results and isinstance(search_results, list):
-            response = "\n".join([f"🔍 {res['title']} - {res['href']}\n{res.get('snippet', '')}" for res in search_results[:5]])
-        else:
-            response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
+        response = search_web(query)
 
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
 
         # **Ambil hanya teks jawaban dari response**
-        if isinstance(response_data, dict) and "answer" in response_data:
-            response = response_data["answer"]
-        elif isinstance(response_data, str):
-            response = response_data
-        else:
-            response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+        response = response_data.get("answer", "⚠️ Terjadi kesalahan dalam mendapatkan jawaban.")
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
