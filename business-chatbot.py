@@ -20,31 +20,33 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔥 UI Streamlit - Sticky Header & CSS Custom**
-st.markdown("""
-    <style>
-        .fixed-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #0e1117;
-            padding: 15px 0;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            z-index: 999;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-        }
-        .appview-container {
-            padding-top: 80px !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
+# **🔍 Fungsi Web Search dengan SerpAPI**
+def search_web(query, num_results=5):
+    """Melakukan pencarian di Google menggunakan SerpAPI"""
+    if "SERP_API_KEY" not in st.secrets:
+        return [{"title": "❌ API Key SerpAPI tidak ditemukan di Secrets!", "href": "#"}]
 
-# **🚀 Tambahkan Header Static**
-st.markdown('<div class="fixed-header">🤖 Chatbot - Tanya Langsung atau Upload File</div>', unsafe_allow_html=True)
+    api_key = st.secrets["SERP_API_KEY"]
+    
+    url = "https://serpapi.com/search"
+    params = {
+        "q": query,
+        "api_key": api_key,
+        "num": num_results,
+        "engine": "google"
+    }
+
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        results = response.json().get("organic_results", [])
+        return [{"title": res["title"], "href": res["link"], "snippet": res["snippet"]} for res in results]
+    else:
+        return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
+
+# **💾 Simpan history chat di session**
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 # **🔹 Pilihan Mode**
 mode = st.radio("Pilih mode interaksi:", ["Tanya Langsung", "Upload File"])
@@ -77,34 +79,6 @@ if mode == "Upload File":
 
 # **🔹 Chatbot dengan Memory & Knowledge dari File (Jika Ada)**
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
-
-# **🔍 Fungsi Web Search dengan SerpAPI**
-def search_web(query, num_results=5):
-    """Melakukan pencarian di Google menggunakan SerpAPI"""
-    if "SERP_API_KEY" not in st.secrets:
-        return [{"title": "❌ API Key SerpAPI tidak ditemukan di Secrets!", "href": "#"}]
-
-    api_key = st.secrets["SERP_API_KEY"]
-    
-    url = "https://serpapi.com/search"
-    params = {
-        "q": query,
-        "api_key": api_key,
-        "num": num_results,
-        "engine": "google"
-    }
-
-    response = requests.get(url, params=params)
-    
-    if response.status_code == 200:
-        results = response.json().get("organic_results", [])
-        return [{"title": res["title"], "href": res["link"], "snippet": res["snippet"]} for res in results]
-    else:
-        return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
-
-# **💾 Simpan history chat di session**
-if "history" not in st.session_state:
-    st.session_state.history = []
 
 # **🔹 Tampilkan Chat History**
 for role, text in st.session_state.history:
@@ -150,8 +124,8 @@ if user_input:
             response_data = llm.invoke(user_input)
 
             # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
-            if isinstance(response_data, dict):
-                response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
+            if isinstance(response_data, dict) and "content" in response_data:
+                response = response_data["content"]
             else:
                 response = str(response_data)
         else:
