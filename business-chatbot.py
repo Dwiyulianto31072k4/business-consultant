@@ -64,28 +64,12 @@ st.markdown(
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* === Input Chat Styling === */
-        input[type="text"] {
-            width: 100%;
-            max-width: 600px;
-            padding: 12px;
-            margin-top: 15px;
-            border-radius: 25px;
-            border: 2px solid #8a2be2;
-            background-color: #282828;
-            color: white;
-            font-size: 14px;
-        }
-        input[type="text"]:focus {
-            outline: none;
-            border: 2px solid #c471ed;
-            background-color: #333;
-        }
     </style>
-    """,
-    unsafe_allow_html=True,
+    """,  # Jangan lupa menutup kutip tiga di sini!
+    unsafe_allow_html=True
 )
-,
+
+   
 # === LOAD API KEY ===
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
