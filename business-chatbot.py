@@ -4,7 +4,9 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain.document_loaders import PyPDFLoader, TextLoader
+
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+
 from langchain.text_splitter import CharacterTextSplitter
 import os
 
