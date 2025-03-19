@@ -23,7 +23,6 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 # **🔥 UI Streamlit - Sticky Header & CSS Custom**
 st.markdown("""
     <style>
-        /* Membuat header tetap di atas */
         .fixed-header {
             position: fixed;
             top: 0;
@@ -38,13 +37,9 @@ st.markdown("""
             z-index: 999;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
         }
-
-        /* Mencegah konten tertutup header */
         .appview-container {
             padding-top: 80px !important;
         }
-
-        /* Custom Chat Bubble */
         .stChatMessage {
             border-radius: 15px;
             padding: 10px;
@@ -59,35 +54,38 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # **🚀 Tambahkan Header Static**
-st.markdown('<div class="fixed-header">🤖 Chatbot dengan File Upload & Web Search</div>', unsafe_allow_html=True)
+st.markdown('<div class="fixed-header">🤖 Chatbot - Tanya Langsung atau Upload File</div>', unsafe_allow_html=True)
 
-st.write("Upload file dan ajukan pertanyaan tentang isi file atau cari informasi di internet!")
+# **🔹 Pilihan Mode**
+mode = st.radio("Pilih mode interaksi:", ["Tanya Langsung", "Upload File"])
 
-# **🔹 Fitur Upload File**
-uploaded_file = st.file_uploader("Upload file (PDF, TXT)", type=["pdf", "txt"])
 retriever = None  # Placeholder untuk retriever
 
-if uploaded_file:
-    with st.spinner("📖 Memproses file..."):
-        file_path = f"./temp_{uploaded_file.name}"
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+if mode == "Upload File":
+    # **🔹 Fitur Upload File**
+    uploaded_file = st.file_uploader("Upload file (PDF, TXT)", type=["pdf", "txt"])
+    
+    if uploaded_file:
+        with st.spinner("📖 Memproses file..."):
+            file_path = f"./temp_{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-        # **🔹 Load File Sesuai Format**
-        if uploaded_file.type == "application/pdf":
-            loader = PyPDFLoader(file_path)
-        elif uploaded_file.type == "text/plain":
-            loader = TextLoader(file_path)
+            # **🔹 Load File Sesuai Format**
+            if uploaded_file.type == "application/pdf":
+                loader = PyPDFLoader(file_path)
+            elif uploaded_file.type == "text/plain":
+                loader = TextLoader(file_path)
 
-        # **🔹 Split Text & Simpan ke VectorStore**
-        documents = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-        split_docs = text_splitter.split_documents(documents)
-        retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
+            # **🔹 Split Text & Simpan ke VectorStore**
+            documents = loader.load()
+            text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+            split_docs = text_splitter.split_documents(documents)
+            retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
 
-        st.success("✅ File berhasil diunggah dan diproses!")
+            st.success("✅ File berhasil diunggah dan diproses!")
 
-# **🔹 Chatbot dengan Memory & Knowledge dari File**
+# **🔹 Chatbot dengan Memory & Knowledge dari File (Jika Ada)**
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
 
 # **🔍 Fungsi Web Search dengan SerpAPI**
@@ -143,11 +141,13 @@ if user_input:
         else:
             response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
 
-    # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
-    elif not conversation:
-        response = "Silakan upload file dulu sebelum bertanya!"
-    else:
+    # **Jika ada file yang diunggah, gunakan retriever**
+    elif retriever:
         response = conversation.invoke({"question": user_input})["answer"]
+
+    # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
+    else:
+        response = llm.invoke(user_input)
 
     # **Tampilkan jawaban chatbot**
     with st.chat_message("assistant"):
