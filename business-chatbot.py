@@ -20,34 +20,6 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔍 Fungsi Web Search dengan SerpAPI**
-def search_web(query, num_results=5):
-    """Melakukan pencarian di Google menggunakan SerpAPI"""
-    if "SERP_API_KEY" not in st.secrets:
-        return ["❌ API Key SerpAPI tidak ditemukan di Secrets!"]
-
-    api_key = st.secrets["SERP_API_KEY"]
-    
-    url = "https://serpapi.com/search"
-    params = {
-        "q": query,
-        "api_key": api_key,
-        "num": num_results,
-        "engine": "google"
-    }
-
-    response = requests.get(url, params=params)
-    
-    if response.status_code == 200:
-        results = response.json().get("organic_results", [])
-        return [f"🔍 [{res['title']}]({res['link']}) - {res.get('snippet', '')}" for res in results]
-    else:
-        return ["❌ Tidak ada hasil pencarian."]
-
-# **💾 Simpan history chat di session**
-if "history" not in st.session_state:
-    st.session_state.history = []
-
 # **🔹 Pilihan Mode**
 mode = st.radio("Pilih mode interaksi:", ["Tanya Langsung", "Upload File"])
 
@@ -95,35 +67,30 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
 
-    # **🔍 Deteksi apakah butuh Web Search**
+    # **🔍 Jika perlu pencarian web**
     if "cari di internet" in user_input.lower():
-        query = user_input.replace("cari di internet", "").strip()
-        search_results = search_web(query)
-
-        response = "\n\n".join(search_results)
+        response = "🔍 [Pencarian belum tersedia di versi ini]"
 
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
-
-        # **🔹 FIX: Ambil hanya teks jawaban dari "answer" tanpa metadata**
         response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
         response_data = llm.invoke(user_input)
-
-        # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
         response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
 
-# **Cegah output `None` atau kosong**
-if not response.strip():
-    response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+    # **✅ Formatting setelah mendapatkan response**
+    if isinstance(response, dict):
+        response = response.get("content", "⚠️ Terjadi kesalahan dalam mendapatkan jawaban.")
+    elif response is None or not response.strip():
+        response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
-# **Tampilkan jawaban chatbot**
-with st.chat_message("assistant"):
-    st.write(response)
+    # **Tampilkan jawaban chatbot**
+    with st.chat_message("assistant"):
+        st.write(response)
 
-# **Simpan history chat**
-st.session_state.history.append(("user", user_input))
-st.session_state.history.append(("assistant", response))
+    # **Simpan history chat**
+    st.session_state.history.append(("user", user_input))
+    st.session_state.history.append(("assistant", response))
