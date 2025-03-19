@@ -105,10 +105,15 @@ for role, text in st.session_state.history:
 user_input = st.chat_input("Ketik pesan Anda...")
 
 # === 🤖 LOGIKA CHATBOT ===
+
 if user_input:
     user_input = user_input.strip()
 
-    # Tampilkan input pengguna
+    # 📝 Langsung tampilkan pesan pengguna di UI sebelum chatbot merespons
+    with st.chat_message("user"):
+        st.write(user_input)
+
+    # Simpan ke chat history
     st.session_state.history.append(("user", user_input))
 
     # === 🔍 Jika pengguna ingin cari di internet ===
@@ -130,7 +135,6 @@ if user_input:
         try:
             response_data = llm.invoke(user_input)
 
-            # Jika respons adalah objek AIMessage, ambil langsung text-nya
             if isinstance(response_data, str):
                 response = response_data  # Jika langsung string
             elif hasattr(response_data, "content"):
@@ -145,17 +149,9 @@ if user_input:
     if not response or not response.strip():
         response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
-    # Tambahkan ke history chat
+    # Simpan respons chatbot ke chat history
     st.session_state.history.append(("bot", response))
 
-    # === ✅ Tampilkan respons chatbot ===
-    st.markdown(
-        f"""
-        <div class='message-container' style='align-items: flex-start;'>
-            <div class='chat-bubble chat-bubble-bot'>
-                {response}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # ✅ Tampilkan respons chatbot di UI
+    with st.chat_message("assistant"):
+        st.write(response)
