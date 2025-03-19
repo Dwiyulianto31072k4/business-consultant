@@ -19,18 +19,34 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔥 UI Styling - Chat Statis di Bawah Seperti ChatGPT**
+# **🔥 UI Styling - Mirip DeepSeek**
 st.markdown("""
     <style>
+        body {
+            background-color: #1e1e1e;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff4c4c;  /* WARNA MERAH */
+            margin-top: 30px;
+        }
+        .sub-title {
+            text-align: center;
+            font-size: 16px;
+            color: #ffffff;
+            margin-bottom: 30px;
+        }
         .chat-container {
             display: flex;
             flex-direction: column-reverse;
             max-height: 65vh;
             overflow-y: auto;
-            border: 1px solid #ccc;
             border-radius: 10px;
             padding: 10px;
-            background: #f8f9fa;
+            background: #2a2a2a;
+            color: white;
         }
         .chat-input-container {
             display: flex;
@@ -41,10 +57,33 @@ st.markdown("""
             left: 50%;
             transform: translateX(-50%);
             width: 80%;
-            background: white;
+            background: #333;
             border-radius: 8px;
             padding: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+        .chat-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            background: #444;
+            color: white;
+            border-radius: 6px;
+        }
+        .chat-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .chat-buttons button {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .chat-buttons button:hover {
+            background: #555;
         }
         .stChatMessage {
             border-radius: 12px;
@@ -52,13 +91,19 @@ st.markdown("""
             margin-bottom: 10px;
         }
         .stChatMessage.user {
-            background-color: #DCF8C6;
+            background-color: #ff4c4c;
+            color: white;
         }
         .stChatMessage.assistant {
-            background-color: #EDEDED;
+            background-color: #3a3a3a;
+            color: white;
         }
     </style>
 """, unsafe_allow_html=True)
+
+# **📌 Tampilkan Header Mirip DeepSeek**
+st.markdown('<div class="main-title">💬 Chatbot AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">How can I help you today?</div>', unsafe_allow_html=True)
 
 # **💾 Simpan history chat di session**
 if "history" not in st.session_state:
@@ -95,7 +140,6 @@ if uploaded_file:
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
 
 # **📌 Chatbox Statis di Bawah**
-st.title("💬 Chatbot AI - Seperti ChatGPT")
 st.markdown('<div class="chat-container">', unsafe_allow_html=True)
 
 for role, text in reversed(st.session_state.history):
@@ -104,10 +148,17 @@ for role, text in reversed(st.session_state.history):
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# **📩 Input Chat dengan Upload File di Samping**
+# **📩 Input Chat dengan Tombol Upload & Fitur Mirip DeepSeek**
 st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
 with col1:
-    user_input = st.chat_input("Ketik pertanyaan Anda...")
+    user_input = st.text_input("Message Chatbot AI", key="chat_input", label_visibility="collapsed")
+
+with col2:
+    st.markdown('<div class="chat-buttons">', unsafe_allow_html=True)
+    st.button("🌐 Search")
+    st.button("🤖 DeepThink (R1)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 if user_input:
