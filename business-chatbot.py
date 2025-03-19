@@ -6,7 +6,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain.text_splitter import CharacterTextSplitter
-from duckduckgo_search import DDGS
+import requests
 import os
 
 # **🚀 Load API Key dari Streamlit Secrets**
@@ -90,12 +90,29 @@ if uploaded_file:
 # **🔹 Chatbot dengan Memory & Knowledge dari File**
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
 
-# **🔍 Fungsi Web Search**
-def search_web(query, num_results=3):
-    """Mencari informasi dari web menggunakan DuckDuckGo"""
-    with DDGS() as ddgs:
-        results = ddgs.text(query, max_results=num_results)
-        return results
+# **🔍 Fungsi Web Search dengan SerpAPI**
+def search_web(query, num_results=5):
+    """Melakukan pencarian di Google menggunakan SerpAPI"""
+    if "SERP_API_KEY" not in st.secrets:
+        return [{"title": "❌ API Key SerpAPI tidak ditemukan di Secrets!", "href": "#"}]
+
+    api_key = st.secrets["SERP_API_KEY"]
+    
+    url = "https://serpapi.com/search"
+    params = {
+        "q": query,
+        "api_key": api_key,
+        "num": num_results,
+        "engine": "google"
+    }
+
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        results = response.json().get("organic_results", [])
+        return [{"title": res["title"], "href": res["link"], "snippet": res["snippet"]} for res in results]
+    else:
+        return [{"title": "❌ Tidak ada hasil pencarian.", "href": "#"}]
 
 # **💾 Simpan history chat di session**
 if "history" not in st.session_state:
@@ -122,9 +139,9 @@ if user_input:
         if search_results:
             response = "🔍 **Hasil pencarian di internet:**\n\n"
             for idx, result in enumerate(search_results, 1):
-                response += f"{idx}. [{result['title']}]({result['href']})\n"
+                response += f"{idx}. [{result['title']}]({result['href']})\n{result['snippet']}\n\n"
         else:
-            response = "❌ Tidak ada hasil yang ditemukan untuk pencarian ini."
+            response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     elif not conversation:
