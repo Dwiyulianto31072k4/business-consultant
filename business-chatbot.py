@@ -94,20 +94,6 @@ if "history" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# === MENAMPILKAN HISTORY CHAT ===
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for role, text in st.session_state.history:
-    align = "flex-end" if role == "user" else "flex-start"
-    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-    st.markdown(f"""
-        <div class='message-container' style='align-items: {align};'>
-            <div class='chat-bubble {bubble_class}'>
-                {text}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
 # === LAYOUT UPLOAD FILE & INPUT CHAT SEJAJAR ===
 col1, col2 = st.columns([1, 5])  # 1 bagian kecil untuk upload, 5 bagian besar untuk input chat
 
@@ -143,9 +129,23 @@ if uploaded_files:
 # === LOGIKA CHATBOT ===
 if user_input:
     user_input = user_input.strip()
-    with st.chat_message("user"):
-        st.write(user_input)
+
+    # Simpan pesan ke history lebih awal agar muncul langsung di atas
     st.session_state.history.append(("user", user_input))
+
+    # Update history chat sebelum chatbot merespons
+    st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+    for role, text in st.session_state.history:
+        align = "flex-end" if role == "user" else "flex-start"
+        bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
+        st.markdown(f"""
+            <div class='message-container' style='align-items: {align};'>
+                <div class='chat-bubble {bubble_class}'>
+                    {text}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # === CEK PENCARIAN INTERNET ===
     if "cari di internet" in user_input.lower():
@@ -180,5 +180,17 @@ if user_input:
 
     response = response if response.strip() else "⚠️ Tidak ada jawaban."
     st.session_state.history.append(("bot", response))
-    with st.chat_message("assistant"):
-        st.write(response)
+
+    # Update history setelah chatbot merespons
+    st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+    for role, text in st.session_state.history:
+        align = "flex-end" if role == "user" else "flex-start"
+        bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
+        st.markdown(f"""
+            <div class='message-container' style='align-items: {align};'>
+                <div class='chat-bubble {bubble_class}'>
+                    {text}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
