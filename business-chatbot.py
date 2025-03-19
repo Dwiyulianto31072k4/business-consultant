@@ -19,11 +19,11 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# **🔥 UI Styling - Background Putih & Clean**
+# **🔥 UI Styling - Full Background Putih & Clean Layout**
 st.markdown("""
     <style>
         body {
-            background-color: #ffffff;
+            background-color: #ffffff !important;
         }
         .main-title {
             text-align: center;
@@ -43,24 +43,22 @@ st.markdown("""
             flex-direction: column-reverse;
             max-height: 65vh;
             overflow-y: auto;
-            border-radius: 10px;
             padding: 10px;
-            background: #f5f5f5;
             border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 10px;
         }
         .chat-input-container {
             display: flex;
             align-items: center;
             gap: 10px;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
+            width: 100%;
+            max-width: 800px;
             background: #ffffff;
             border-radius: 8px;
             padding: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            margin: auto;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
         .chat-input {
             flex-grow: 1;
@@ -69,20 +67,17 @@ st.markdown("""
             border-radius: 6px;
             background: #fafafa;
             color: #333;
+            width: 100%;
         }
-        .chat-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        .chat-buttons button {
+        .upload-file-btn {
+            padding: 10px;
             background: #d32f2f;
             color: white;
-            border: none;
-            padding: 10px 14px;
             border-radius: 6px;
             cursor: pointer;
+            border: none;
         }
-        .chat-buttons button:hover {
+        .upload-file-btn:hover {
             background: #b71c1c;
         }
         .stChatMessage {
@@ -152,7 +147,7 @@ conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, m
 # **📩 Input Chat dengan Tombol Upload**
 st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
 with col1:
-    user_input = st.text_input("Message Chatbot AI", key="chat_input", label_visibility="collapsed")
+    user_input = st.text_input("Ketik pesan Anda...", key="chat_input", label_visibility="collapsed")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
