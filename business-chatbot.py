@@ -14,29 +14,38 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Inisialisasi Chatbot
 llm = ChatOpenAI(openai_api_key=openai_api_key, model_name="gpt-4")
-
-# Fix: Tambahkan retriever (WAJIB di versi terbaru LangChain)
 retriever = FAISS.from_texts(["Halo! Ada yang bisa saya bantu?"], OpenAIEmbeddings()).as_retriever()
-
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory)
 
-# UI Streamlit
+# UI Streamlit - Desain Chatbot
 st.title("🤖 Chatbot LLM dengan Memory")
 st.write("Chatbot ini bisa mengingat percakapan sebelumnya.")
 
-# Simpan history percakapan di session
+# Simpan history chat di session
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# Input user
-user_input = st.text_input("Anda:", "")
+# **🔹 Tampilkan Chat History dalam Format Chat**
+for role, text in st.session_state.history:
+    with st.chat_message(role):
+        st.write(text)
+
+# **🔹 Input User Pindah ke Bawah (ChatGPT-style)**
+user_input = st.chat_input("Ketik pesan Anda...")
 
 if user_input:
-    response = conversation.invoke({"question": user_input})
-    st.session_state.history.append(("Anda", user_input))
-    st.session_state.history.append(("Konsultan AI", response["answer"]))
+    # Tampilkan pesan user
+    with st.chat_message("user"):
+        st.write(user_input)
 
-# Tampilkan percakapan
-for role, text in st.session_state.history:
-    st.write(f"**{role}:** {text}")
+    # Proses chatbot
+    response = conversation.invoke({"question": user_input})["answer"]
+
+    # Tampilkan jawaban chatbot
+    with st.chat_message("assistant"):
+        st.write(response)
+
+    # Simpan history ke session
+    st.session_state.history.append(("user", user_input))
+    st.session_state.history.append(("assistant", response))
