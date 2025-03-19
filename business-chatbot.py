@@ -147,7 +147,15 @@ if user_input:
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
-        response = response_data["answer"] if isinstance(response_data, dict) and "answer" in response_data else "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+
+# Ambil hanya teks jawaban dari response
+if isinstance(response_data, dict) and "answer" in response_data:
+    response = response_data["answer"]
+elif isinstance(response_data, str):
+    response = response_data
+else:
+    response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
