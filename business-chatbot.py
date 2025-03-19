@@ -89,7 +89,7 @@ for role, text in st.session_state.history:
 user_input = st.chat_input("Ketik pertanyaan Anda...")
 
 # **🔹 Pastikan jawaban selalu memiliki nilai default**
-response = "⚠️ Silakan masukkan pertanyaan yang valid."
+response = None
 
 if user_input:
     user_input = user_input.strip()  # Hapus spasi ekstra
@@ -132,6 +132,10 @@ if user_input:
             response = response_data["content"]
         else:
             response = str(response_data)
+
+# **Cegah output `None` atau kosong**
+if not response or response.strip() == "":
+    response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
 # **Tampilkan jawaban chatbot**
 with st.chat_message("assistant"):
