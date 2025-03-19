@@ -30,13 +30,13 @@ st.markdown(
             padding: 10px;
         }
         .chat-bubble {
-            padding: 12px;
-            margin: 5px;
+            padding: 15px;
+            margin: 8px;
             border-radius: 20px;
             max-width: 80%;
             font-size: 14px;
             display: inline-block;
-            animation: fadeIn 0.3s ease-in-out;
+            animation: fadeIn 0.4s ease-in-out;
         }
         .chat-bubble-user {
             background: linear-gradient(135deg, #8a2be2, #6e3ff2);
@@ -60,16 +60,15 @@ st.markdown(
             align-items: flex-start;
             margin-bottom: 20px;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
+       @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
-    """,  # Jangan lupa menutup kutip tiga di sini!
+    """,
     unsafe_allow_html=True
 )
 
-   
 # === LOAD API KEY ===
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
@@ -91,25 +90,30 @@ retriever = None
 # === FITUR UPLOAD FILE ===
 if mode == "Upload File":
     uploaded_files = st.file_uploader("Unggah file (PDF, TXT)", type=["pdf", "txt"], accept_multiple_files=True)
+
     if uploaded_files:
+        st.success("📂 File berhasil diunggah! Chatbot akan menggunakan dokumen untuk menjawab pertanyaan.")
         documents = []
+        
         for uploaded_file in uploaded_files:
             with st.spinner(f"📖 Memproses {uploaded_file.name}..."):
                 file_path = f"./temp_{uploaded_file.name}"
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
-                
+
                 if uploaded_file.type == "application/pdf":
                     loader = PyPDFLoader(file_path)
                 elif uploaded_file.type == "text/plain":
                     loader = TextLoader(file_path)
-                
+
                 documents.extend(loader.load())
-        
+
         text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
         split_docs = text_splitter.split_documents(documents)
         retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
         st.success("✅ Semua file berhasil diproses!")
+    else:
+        st.warning("⚠️ Silakan unggah file terlebih dahulu sebelum bertanya.")
 
 # === MENAMPILKAN HISTORY CHAT ===
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
@@ -135,6 +139,7 @@ if user_input:
         st.write(user_input)
     st.session_state.history.append(("user", user_input))
 
+    # === CEK PENCARIAN INTERNET ===
     if "cari di internet" in user_input.lower():
         try:
             query = user_input.replace("cari di internet", "").strip()
@@ -143,22 +148,28 @@ if user_input:
             response = requests.get(search_url, headers=headers)
             soup = BeautifulSoup(response.text, "html.parser")
             results = soup.find_all("h3")
-            response = "\n".join([res.get_text() for res in results[:5]])
+            response = "\n".join([res.get_text() for res in results[:5]]) or "⚠️ Tidak ada hasil pencarian yang ditemukan."
         except Exception as e:
             response = f"⚠️ Gagal mengambil data internet: {str(e)}"
-    elif retriever:
+
+    # === CEK ANALISIS DOKUMEN ===
+    elif mode == "Upload File" and retriever:
         try:
-            response_data = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory).invoke({"question": user_input})
-            response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
+            response_data = ConversationalRetrievalChain.from_llm(
+                llm, retriever=retriever, memory=memory
+            ).invoke({"question": user_input})
+            response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia dari dokumen.")
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam pemrosesan file: {str(e)}"
+
+    # === JIKA CHAT BIASA ===
     else:
         try:
             response_data = llm.invoke(user_input)
             response = response_data if isinstance(response_data, str) else response_data.content
         except Exception as e:
             response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
-    
+
     response = response if response.strip() else "⚠️ Tidak ada jawaban."
     st.session_state.history.append(("bot", response))
     with st.chat_message("assistant"):
