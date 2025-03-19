@@ -18,7 +18,7 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # **🚀 Inisialisasi Chatbot**
 llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=False)
 
 # **🔥 UI Streamlit - Sticky Header & CSS Custom**
 st.markdown("""
@@ -135,12 +135,7 @@ if user_input:
         search_results = search_web(query)
 
         if search_results and isinstance(search_results, list):
-            response = "🔍 **Hasil pencarian di internet:**\n\n"
-            for idx, result in enumerate(search_results[:5], 1):  # Batasi 5 hasil pertama
-                if "title" in result and "href" in result:
-                    response += f"{idx}. [{result['title']}]({result['href']})\n"
-                    if "snippet" in result:
-                        response += f"  _{result['snippet']}_\n\n"
+            response = "\n".join([f"🔍 {res['title']} - {res['href']}\n{res.get('snippet', '')}" for res in search_results[:5]])
         else:
             response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
 
@@ -148,14 +143,13 @@ if user_input:
     elif retriever:
         response_data = conversation.invoke({"question": user_input})
 
-# Ambil hanya teks jawaban dari response
-if isinstance(response_data, dict) and "answer" in response_data:
-    response = response_data["answer"]
-elif isinstance(response_data, str):
-    response = response_data
-else:
-    response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
-
+        # **Ambil hanya teks jawaban dari response**
+        if isinstance(response_data, dict) and "answer" in response_data:
+            response = response_data["answer"]
+        elif isinstance(response_data, str):
+            response = response_data
+        else:
+            response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
