@@ -118,23 +118,19 @@ if user_input:
         else:
             response = str(response_data)
 
-    # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
-    else:
-        if user_input.strip():  # Pastikan input tidak kosong
-            response_data = llm.invoke(user_input)
+# **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
+else:
+    if user_input.strip():  # Pastikan input tidak kosong
+        response_data = llm.invoke(user_input)
 
-            # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
-            if isinstance(response_data, dict) and "content" in response_data:
-                response = response_data["content"]
-            else:
-                response = str(response_data)
+        # **🔹 FIX: Ambil hanya teks jawaban dari "content" tanpa metadata**
+        if isinstance(response_data, dict):
+            response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
         else:
-            response = "⚠️ Masukkan pertanyaan yang valid."
+            response = str(response_data)
+    else:
+        response = "⚠️ Masukkan pertanyaan yang valid."
 
-    # **Tampilkan jawaban chatbot**
-    with st.chat_message("assistant"):
-        st.write(response)
-
-    # **Simpan history chat**
-    st.session_state.history.append(("user", user_input))
-    st.session_state.history.append(("assistant", response))
+# **Tampilkan jawaban chatbot**
+with st.chat_message("assistant"):
+    st.write(response)
