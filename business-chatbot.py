@@ -82,38 +82,8 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 # === SIMPAN HISTORY CHAT ===
 if "history" not in st.session_state:
     st.session_state.history = []
-
-# === PILIH MODE INTERAKSI ===
-mode = st.radio("Pilih Mode Interaksi:", ["Chat", "Upload File"], horizontal=True)
-retriever = None
-
-# === FITUR UPLOAD FILE ===
-if mode == "Upload File":
-    uploaded_files = st.file_uploader("Unggah file (PDF, TXT)", type=["pdf", "txt"], accept_multiple_files=True)
-
-    if uploaded_files:
-        st.success("📂 File berhasil diunggah! Chatbot akan menggunakan dokumen untuk menjawab pertanyaan.")
-        documents = []
-        
-        for uploaded_file in uploaded_files:
-            with st.spinner(f"📖 Memproses {uploaded_file.name}..."):
-                file_path = f"./temp_{uploaded_file.name}"
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-
-                if uploaded_file.type == "application/pdf":
-                    loader = PyPDFLoader(file_path)
-                elif uploaded_file.type == "text/plain":
-                    loader = TextLoader(file_path)
-
-                documents.extend(loader.load())
-
-        text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-        split_docs = text_splitter.split_documents(documents)
-        retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
-        st.success("✅ Semua file berhasil diproses!")
-    else:
-        st.warning("⚠️ Silakan unggah file terlebih dahulu sebelum bertanya.")
+if "retriever" not in st.session_state:
+    st.session_state.retriever = None
 
 # === MENAMPILKAN HISTORY CHAT ===
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
@@ -129,8 +99,37 @@ for role, text in st.session_state.history:
     """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
+# === TOMBOL UPLOAD FILE DI SEBELAH INPUT CHAT ===
+col1, col2 = st.columns([1, 5])  # Kolom untuk Upload dan Input Chat
+with col1:
+    uploaded_files = st.file_uploader("📂", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
+
+# === PROSES FILE JIKA DIUNGGAH ===
+if uploaded_files:
+    st.success("📂 File berhasil diunggah! Chatbot akan menggunakan dokumen jika dibutuhkan.")
+    documents = []
+    
+    for uploaded_file in uploaded_files:
+        with st.spinner(f"📖 Memproses {uploaded_file.name}..."):
+            file_path = f"./temp_{uploaded_file.name}"
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            if uploaded_file.type == "application/pdf":
+                loader = PyPDFLoader(file_path)
+            elif uploaded_file.type == "text/plain":
+                loader = TextLoader(file_path)
+
+            documents.extend(loader.load())
+
+    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    split_docs = text_splitter.split_documents(documents)
+    st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
+    st.success("✅ Semua file berhasil diproses!")
+
 # === INPUT CHAT ===
-user_input = st.chat_input("Ketik pesan Anda...")
+with col2:
+    user_input = st.chat_input("Ketik pesan Anda...")
 
 # === LOGIKA CHATBOT ===
 if user_input:
@@ -153,10 +152,10 @@ if user_input:
             response = f"⚠️ Gagal mengambil data internet: {str(e)}"
 
     # === CEK ANALISIS DOKUMEN ===
-    elif mode == "Upload File" and retriever:
+    elif st.session_state.retriever:
         try:
             response_data = ConversationalRetrievalChain.from_llm(
-                llm, retriever=retriever, memory=memory
+                llm, retriever=st.session_state.retriever, memory=memory
             ).invoke({"question": user_input})
             response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia dari dokumen.")
         except Exception as e:
