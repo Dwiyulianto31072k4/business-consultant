@@ -35,7 +35,7 @@ user_input = st.text_input("Anda:", "")
 if user_input:
     response = conversation.invoke({"question": user_input})
     st.session_state.history.append(("Anda", user_input))
-    st.session_state.history.append(("Bot", response["answer"]))
+    st.session_state.history.append(("Konsultan AI", response["answer"]))
 
 # Tampilkan percakapan
 for role, text in st.session_state.history:
