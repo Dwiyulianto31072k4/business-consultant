@@ -4,5 +4,5 @@ langchain_community
 langchain_openai
 openai
 faiss-cpu
-duckduckgo-search
+serpapi
 pypdf
