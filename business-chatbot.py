@@ -181,16 +181,17 @@ if user_input:
     response = response if response.strip() else "⚠️ Tidak ada jawaban."
     st.session_state.history.append(("bot", response))
 
-    # Update history setelah chatbot merespons
-    st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-    for role, text in st.session_state.history:
-        align = "flex-end" if role == "user" else "flex-start"
-        bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-        st.markdown(f"""
-            <div class='message-container' style='align-items: {align};'>
-                <div class='chat-bubble {bubble_class}'>
-                    {text}
-                </div>
+# === MENAMPILKAN HISTORY CHAT (Pesan terbaru di bawah) ===
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
+for role, text in reversed(st.session_state.history):  # Urutan chat dari atas ke bawah
+    align = "flex-end" if role == "user" else "flex-start"
+    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
+    st.markdown(f"""
+        <div class='message-container' style='align-items: {align};'>
+            <div class='chat-bubble {bubble_class}'>
+                {text}
             </div>
-        """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        </div>
+    """, unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
