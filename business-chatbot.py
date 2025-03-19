@@ -117,18 +117,32 @@ if user_input:
 
     # === 🗂 Jika ada file diunggah, gunakan retriever ===
     elif retriever:
-        response_data = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory).invoke(
-            {"question": user_input}
-        )
-        response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
+        try:
+            response_data = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory).invoke(
+                {"question": user_input}
+            )
+            response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
+        except Exception as e:
+            response = f"⚠️ Terjadi kesalahan dalam pemrosesan file: {str(e)}"
 
     # === 💡 Jika hanya chat biasa ===
     else:
-        response_data = llm.invoke(user_input)
-        response = response_data.get("content", "⚠️ Tidak ada jawaban yang tersedia.")
+        try:
+            response_data = llm.invoke(user_input)
+
+            # Jika respons adalah objek AIMessage, ambil langsung text-nya
+            if isinstance(response_data, str):
+                response = response_data  # Jika langsung string
+            elif hasattr(response_data, "content"):
+                response = response_data.content  # Jika objek AIMessage
+            else:
+                response = "⚠️ Tidak ada jawaban yang tersedia."
+
+        except Exception as e:
+            response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
 
     # 💡 Pastikan tidak ada respons kosong
-    if not response.strip():
+    if not response or not response.strip():
         response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
     # Tambahkan ke history chat
