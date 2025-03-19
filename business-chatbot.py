@@ -8,168 +8,167 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain.text_splitter import CharacterTextSplitter
 import requests
 import os
-from bs4 import BeautifulSoup
+import time
 
-# === KONFIGURASI UTAMA ===
-st.set_page_config(page_title="Chatbot AI", page_icon="💬", layout="wide")
+# ======= 🚀 Konfigurasi Streamlit =======
+st.set_page_config(page_title="Chatbot AI", layout="wide")
 
-st.markdown(
-    """
-    <style>
-        body {
-            background: linear-gradient(135deg, #1c1c1c, #2d2d2d);
-            font-family: 'Arial', sans-serif;
-            color: white;
-        }
-        .chat-container {
-            width: 100%;
-            max-width: 700px;
-            margin: auto;
-            padding: 20px;
-            height: 75vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-bubble {
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 20px;
-            max-width: 80%;
-            font-size: 14px;
-            display: inline-block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .chat-bubble-user {
-            background: linear-gradient(135deg, #8a2be2, #6e3ff2);
-            color: white;
-            text-align: right;
-            align-self: flex-end;
-            float: right;
-            margin-right: 10px;
-        }
-        .chat-bubble-bot {
-            background-color: white;
-            color: black;
-            text-align: left;
-            align-self: flex-start;
-            float: left;
-            margin-left: 10px;
-        }
-        .file-bubble {
-            background: #3a3a3a;
-            color: white;
-            padding: 8px;
-            border-radius: 10px;
-            max-width: 80%;
-            font-size: 12px;
-        }
-        .input-container {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: #1c1c1c;
-            padding: 10px 20px;
-            box-shadow: 0 -2px 5px rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# === LOAD API KEY ===
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
-    st.error("❌ API Key OpenAI tidak ditemukan!")
+# ======= 🚀 Load API Key dari Streamlit Secrets =======
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("❌ API Key OpenAI tidak ditemukan! Tambahkan di Streamlit Cloud.")
     st.stop()
 
-# === INISIALISASI MODEL CHAT ===
-llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4-turbo", temperature=0.7)
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+
+# ======= 🚀 Inisialisasi Chatbot =======
+llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4")
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
-# === SIMPAN HISTORY CHAT ===
+# ======= 💾 Simpan history chat di session_state =======
 if "history" not in st.session_state:
     st.session_state.history = []
-if "retriever" not in st.session_state:
-    st.session_state.retriever = None
-if "uploaded_files" not in st.session_state:
-    st.session_state.uploaded_files = []
 
-# === LAYOUT CHAT HISTORY ===
-st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
-for role, text in st.session_state.history:
-    align = "flex-end" if role == "user" else "flex-start"
-    bubble_class = "chat-bubble-user" if role == "user" else "chat-bubble-bot"
-    st.markdown(f"""
-        <div class='message-container' style='align-items: {align};'>
-            <div class='chat-bubble {bubble_class}'>
-                {text}
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+# ======= 🔹 Pilihan Mode Chat atau Upload File =======
+mode = st.radio("📌 Pilih Mode Interaksi:", ["Chat", "Upload File"], horizontal=True)
 
-# === LAYOUT INPUT CHAT & UPLOAD FILE ===
-st.markdown("<div class='input-container'>", unsafe_allow_html=True)
-col1, col2 = st.columns([1, 5])
+retriever = None  # Placeholder untuk retriever
 
-with col1:
-    uploaded_files = st.file_uploader("📂 Upload", type=["pdf", "txt"], accept_multiple_files=True, label_visibility="collapsed")
-
-with col2:
-    user_input = st.chat_input("Ketik pesan Anda...")
-st.markdown("</div>", unsafe_allow_html=True)
-
-# === PROSES FILE JIKA DIUNGGAH KAPAN SAJA ===
-if uploaded_files:
-    for uploaded_file in uploaded_files:
-        file_name = uploaded_file.name
-        if file_name not in st.session_state.uploaded_files:
-            st.session_state.uploaded_files.append(file_name)
-            st.session_state.history.append(("user", f"📂 {file_name} telah diunggah!"))
-
-            # Proses dan simpan file
-            documents = []
+if mode == "Upload File":
+    # ======= 📂 Fitur Upload File =======
+    uploaded_file = st.file_uploader("📎 Unggah file (PDF, TXT)", type=["pdf", "txt"])
+    
+    if uploaded_file:
+        with st.spinner("📖 Memproses file..."):
             file_path = f"./temp_{uploaded_file.name}"
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
+            # ======= 🔹 Load File Sesuai Format =======
             if uploaded_file.type == "application/pdf":
                 loader = PyPDFLoader(file_path)
             elif uploaded_file.type == "text/plain":
                 loader = TextLoader(file_path)
 
-            documents.extend(loader.load())
-
+            # ======= 🔹 Split Text & Simpan ke VectorStore =======
+            documents = loader.load()
             text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
             split_docs = text_splitter.split_documents(documents)
-            st.session_state.retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
-            st.success(f"✅ {file_name} berhasil diproses!")
+            retriever = FAISS.from_documents(split_docs, OpenAIEmbeddings()).as_retriever()
 
-    st.rerun()
+            st.success("✅ File berhasil diunggah dan diproses!")
 
-# === PROSES INPUT USER ===
+# ======= 🔹 Chatbot dengan Memory & Knowledge dari File (Jika Ada) =======
+conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
+
+# ======= 💬 Tampilkan History Chat =======
+st.markdown("## 💬 Chatbot AI")
+for role, text in st.session_state.history:
+    with st.chat_message(role):
+        st.write(text)
+
+# ======= 🔹 Input Chat =======
+user_input = st.chat_input("✏️ Ketik pesan Anda...")
+
 if user_input:
+    user_input = user_input.strip()
+
+    # 📝 Langsung tampilkan pesan user di UI sebelum bot merespons
+    with st.chat_message("user"):
+        st.write(user_input)
+
+    # Simpan ke history chat
     st.session_state.history.append(("user", user_input))
 
-    # === PROSES RESPON AI ===
-    response = "⚠️ Maaf, saya tidak dapat memberikan jawaban."
+    # === 🔍 Jika ada pencarian web ===
+    if "cari di internet" in user_input.lower():
+        response = "🔍 [Pencarian internet belum tersedia di versi ini]"
 
-    if st.session_state.retriever:
+    # === 🗂 Jika ada file yang diunggah, gunakan retriever ===
+    elif retriever:
         try:
-            response_data = ConversationalRetrievalChain.from_llm(
-                llm, retriever=st.session_state.retriever, memory=memory
-            ).invoke({"question": user_input})
-            response = response_data.get("answer", "⚠️ Tidak ada jawaban dari dokumen.")
+            response_data = conversation.invoke({"question": user_input})
+            response = response_data.get("answer", "⚠️ Tidak ada jawaban yang tersedia.")
         except Exception as e:
-            response = f"⚠️ Kesalahan dalam pemrosesan file: {str(e)}"
+            response = f"⚠️ Terjadi kesalahan dalam pemrosesan file: {str(e)}"
 
-    st.session_state.history.append(("bot", response))
-    st.rerun()
+    # === 💡 Jika hanya chat biasa ===
+    else:
+        try:
+            response_data = llm.invoke(user_input)
+
+            if isinstance(response_data, str):
+                response = response_data  # Jika langsung string
+            elif hasattr(response_data, "content"):
+                response = response_data.content  # Jika objek AIMessage
+            else:
+                response = "⚠️ Tidak ada jawaban yang tersedia."
+
+        except Exception as e:
+            response = f"⚠️ Terjadi kesalahan dalam memproses pertanyaan: {str(e)}"
+
+    # 💡 Pastikan tidak ada respons kosong
+    if not response or not response.strip():
+        response = "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
+
+    # Simpan respons chatbot ke chat history
+    st.session_state.history.append(("assistant", response))
+
+    # ✅ Tampilkan respons chatbot di UI
+    with st.chat_message("assistant"):
+        st.write(response)
+
+# ======= 🔥 Efek Typing Animation =======
+def typing_effect(text):
+    output = ""
+    for char in text:
+        output += char
+        time.sleep(0.01)  # Simulasi efek mengetik
+        st.write(output, end="\r")
+
+# ======= 🛠️ Fungsi Reset Chat =======
+def reset_chat():
+    st.session_state.history = []
+    st.success("💡 Chat telah direset!")
+
+st.sidebar.button("🔄 Reset Chat", on_click=reset_chat)
+
+# ======= 🎨 UI CUSTOM =======
+st.markdown("""
+<style>
+    /* Gaya Chat UI */
+    .stChatMessage {
+        border-radius: 8px;
+        padding: 10px;
+        margin: 5px;
+    }
+    .stChatMessage-user {
+        background-color: #DCF8C6;
+        color: black;
+        text-align: right;
+    }
+    .stChatMessage-assistant {
+        background-color: #ECECEC;
+        color: black;
+        text-align: left;
+    }
+    
+    /* Gaya Input Chat */
+    .stChatInput {
+        border-radius: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        width: 100%;
+        background-color: #FAFAFA;
+    }
+
+    /* Gaya Upload File */
+    .stFileUploader {
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        font-size: 14px;
+        color: #555;
+    }
+</style>
+""", unsafe_allow_html=True)
