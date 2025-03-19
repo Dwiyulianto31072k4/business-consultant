@@ -134,16 +134,20 @@ if user_input:
         query = user_input.replace("cari di internet", "").strip()
         search_results = search_web(query)
 
-        if search_results:
+        if search_results and isinstance(search_results, list):
             response = "🔍 **Hasil pencarian di internet:**\n\n"
-            for idx, result in enumerate(search_results, 1):
-                response += f"{idx}. [{result['title']}]({result['href']})\n{result['snippet']}\n\n"
+            for idx, result in enumerate(search_results[:5], 1):  # Batasi 5 hasil pertama
+                if "title" in result and "href" in result:
+                    response += f"{idx}. [{result['title']}]({result['href']})\n"
+                    if "snippet" in result:
+                        response += f"  _{result['snippet']}_\n\n"
         else:
             response = "❌ Tidak ada hasil pencarian untuk kata kunci ini."
 
     # **Jika ada file yang diunggah, gunakan retriever**
     elif retriever:
-        response = conversation.invoke({"question": user_input})["answer"]
+        response_data = conversation.invoke({"question": user_input})
+        response = response_data["answer"] if isinstance(response_data, dict) and "answer" in response_data else "⚠️ Terjadi kesalahan dalam mendapatkan jawaban."
 
     # **Jika tidak ada file & bukan Web Search, gunakan LLM biasa**
     else:
