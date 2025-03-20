@@ -61,7 +61,7 @@ if mode == "Upload File":
 conversation = ConversationalRetrievalChain.from_llm(llm, retriever=retriever, memory=memory) if retriever else None
 
 # ======= 💬 Tampilkan History Chat =======
-st.markdown("## 💬 Chatbot AI")
+st.markdown("## 💬 AI Business Consultant")
 for role, text in st.session_state.history:
     with st.chat_message(role):
         st.write(text)
