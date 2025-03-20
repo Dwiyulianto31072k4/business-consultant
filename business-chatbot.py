@@ -11,7 +11,7 @@ import os
 import time
 
 # ======= 🚀 Konfigurasi Streamlit =======
-st.set_page_config(page_title="Chatbot AI", layout="wide")
+st.set_page_config(page_title="AI Business Consultant", layout="wide")
 
 # ======= 🚀 Load API Key dari Streamlit Secrets =======
 if "OPENAI_API_KEY" not in st.secrets:
